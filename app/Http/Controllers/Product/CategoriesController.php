@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\Category\CreateCategoryRequest;
 use App\Http\Requests\Product\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class CategoriesController extends Controller
         return $category;
     }
 
-    public function store(Request $request)
+    public function store(CreateCategoryRequest $request)
     {
         if (!Auth::user()->is_admin) {
             return response()->json(['error' => 'Unauthorized. Only admin can create categories.'], 403);

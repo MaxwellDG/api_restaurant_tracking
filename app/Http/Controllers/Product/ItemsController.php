@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Items;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Product\UpdateItemRequest;
+use App\Http\Requests\Product\Items\CreateItemRequest;
+use App\Http\Requests\Product\Items\UpdateItemRequest;
 use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -21,7 +22,7 @@ class ItemsController extends Controller
         return $item;
     }
 
-    public function store(Request $request)
+    public function store(CreateItemRequest $request)
     {
         if (!Auth::user()->is_admin) {
             return response()->json(['error' => 'Unauthorized. Only admin can create items.'], 403);
