@@ -4,21 +4,25 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\IndexOrdersRequest;
+use App\Http\Requests\Product\Orders\CreateOrderRequest;
+use App\Http\Requests\Product\Orders\UpdateOrderRequest;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class OrdersController extends Controller
 {
     public function index(IndexOrdersRequest $request)
     {
-        $query = Order::with(['user', 'items']);
+        $query = Order::with(['user', 'items'])
+            ->where('user_id', Auth::id());
 
-        if ($request->has('startDate')) {
+        if ($request->has('start_date')) {
             $query->where('created_at', '>=', $request->startDate);
         }
 
-        if ($request->has('endDate')) {
+        if ($request->has('end_date')) {
             $query->where('created_at', '<=', $request->endDate);
         }
 
@@ -36,21 +40,29 @@ class OrdersController extends Controller
 
     public function show(Order $order)
     {
-        return $order;
+        return $order->load(['user', 'items']);
     }
 
-    public function store(Request $request)
+    public function store(CreateOrderRequest $request)
     {
-        return Order::create($request->all());
+        $user_id = Auth::id();
+        return Order::create($user_id, $request->all());
     }
 
-    public function update(Request $request, Order $order)
+    public function update(UpdateOrderRequest $request, Order $order)
     {
-        return $order->update($request->all());
+        if ($order->user_id !== Auth::id() && !Auth::user()->is_admin) {
+            return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can update.'], 403);
+        }
+        
+        return $order->updateOrder($request->all());
     }
 
     public function destroy(Order $order)
     {
+        if ($order->user_id !== Auth::id() && !Auth::user()->is_admin) {
+            return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can delete.'], 403);
+        }
         return $order->delete();
     }
 }

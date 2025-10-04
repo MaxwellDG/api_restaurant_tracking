@@ -11,9 +11,11 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::resource('items', ItemsController::class);
-Route::resource('orders', OrdersController::class);
-Route::resource('categories', CategoriesController::class);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::resource('items', ItemsController::class);
+    Route::resource('orders', OrdersController::class);
+    Route::resource('categories', CategoriesController::class);
+});
 
 Route::get("/test", function () {
     return Response::json(["message" => "Hello World"]);

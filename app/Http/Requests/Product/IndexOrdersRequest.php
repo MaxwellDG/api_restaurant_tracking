@@ -22,8 +22,8 @@ class IndexOrdersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'startDate' => 'nullable|date',
-            'endDate' => 'nullable|date|after_or_equal:startDate',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'item_id' => 'nullable|integer|exists:items,id',
             'page' => 'nullable|integer|min:1'
         ];
@@ -37,9 +37,9 @@ class IndexOrdersRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'startDate.date' => 'The start date must be a valid date.',
-            'endDate.date' => 'The end date must be a valid date.',
-            'endDate.after_or_equal' => 'The end date must be after or equal to the start date.',
+            'start_date.date' => 'The start date must be a valid date.',
+            'end_date.date' => 'The end date must be a valid date.',
+            'end_date.after_or_equal' => 'The end date must be after or equal to the start date.',
             'item_id.integer' => 'The item ID must be an integer.',
             'item_id.exists' => 'The selected item does not exist.',
             'page.integer' => 'The page must be an integer.',
