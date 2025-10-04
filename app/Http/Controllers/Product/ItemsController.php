@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Items;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Product\UpdateItemRequest;
 use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -28,7 +29,7 @@ class ItemsController extends Controller
         return Item::create($request->all());
     }
 
-    public function update(Request $request, Item $item)
+    public function update(UpdateItemRequest $request, Item $item)
     {
         if (!Auth::user()->is_admin) {
             return response()->json(['error' => 'Unauthorized. Only admin can update items.'], 403);

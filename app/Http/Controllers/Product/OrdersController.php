@@ -15,8 +15,7 @@ class OrdersController extends Controller
 {
     public function index(IndexOrdersRequest $request)
     {
-        $query = Order::with(['user', 'items'])
-            ->where('user_id', Auth::id());
+        $query = Order::with(['items']);
 
         if ($request->has('start_date')) {
             $query->where('created_at', '>=', $request->startDate);
