@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class CategoriesController extends Controller
 {
@@ -21,15 +22,24 @@ class CategoriesController extends Controller
 
     public function store(Request $request)
     {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['error' => 'Unauthorized. Only admin can create categories.'], 403);
+        }
         return Category::create($request->all());
     }
 
     public function update(Request $request, Category $category)
     {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['error' => 'Unauthorized. Only admin can update categories.'], 403);
+        }
         return $category->update($request->all());
     }
     public function destroy(Category $category)
     {
+        if (!Auth::user()->is_admin) {
+            return response()->json(['error' => 'Unauthorized. Only admin can delete categories.'], 403);
+        }
         return $category->delete();
     }
 }
