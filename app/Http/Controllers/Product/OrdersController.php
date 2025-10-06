@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\IndexOrdersRequest;
 use App\Http\Requests\Product\Orders\CreateOrderRequest;
 use App\Http\Requests\Product\Orders\UpdateOrderRequest;
+use App\Http\Requests\Product\Orders\PayOrderRequest;
 use App\Models\Order;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -63,5 +65,17 @@ class OrdersController extends Controller
             return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can delete.'], 403);
         }
         return $order->delete();
+    }
+
+    public function addPayment(PayOrderRequest $request, Order $order)
+    {
+        if(Auth::user()->is_admin)
+        {
+            return OrderService::addPayment($order, $request->all());
+        }
+        else
+        {
+            return response()->json(['error' => 'Unauthorized. Only admin can add payment.'], 403);
+        }
     }
 }

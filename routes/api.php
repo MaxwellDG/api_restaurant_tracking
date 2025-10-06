@@ -13,7 +13,11 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('items', ItemsController::class);
+
+
     Route::resource('orders', OrdersController::class);
+    Route::post('orders/{order}/addPayment', [OrdersController::class, 'pay']);
+
     Route::resource('categories', CategoriesController::class);
 });
 
