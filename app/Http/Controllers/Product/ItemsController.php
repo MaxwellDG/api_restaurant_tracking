@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Items;
+namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\Items\CreateItemRequest;

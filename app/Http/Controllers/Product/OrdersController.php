@@ -66,16 +66,4 @@ class OrdersController extends Controller
         }
         return $order->delete();
     }
-
-    public function addPayment(PayOrderRequest $request, Order $order)
-    {
-        if(Auth::user()->is_admin)
-        {
-            return OrderService::addPayment($order, $request->all());
-        }
-        else
-        {
-            return response()->json(['error' => 'Unauthorized. Only admin can add payment.'], 403);
-        }
-    }
 }

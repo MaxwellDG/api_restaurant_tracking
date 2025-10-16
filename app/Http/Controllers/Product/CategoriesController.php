@@ -44,4 +44,21 @@ class CategoriesController extends Controller
         }
         return $category->delete();
     }
+
+    /**
+     * Get the full inventory of categories and their items
+     */
+    public function inventory()
+    {
+        $categories = Category::getCategories();
+
+        $categories_with_items = $categories->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'items' => $category->items,
+            ];
+        });
+        return response()->json($categories_with_items);
+    }
 }
