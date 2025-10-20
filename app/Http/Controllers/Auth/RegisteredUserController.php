@@ -36,6 +36,15 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return response()->noContent();
+        return response()->json([
+            'message' => 'Registration successful. Please verify your email address.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at,
+            ],
+            'requires_email_verification' => true
+        ], 201);
     }
 }

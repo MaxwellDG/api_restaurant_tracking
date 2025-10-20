@@ -13,6 +13,17 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/email/verify/status', function (Request $request) {
+        return response()->json([
+            'email_verified' => $request->user()->hasVerifiedEmail(),
+            'email' => $request->user()->email,
+            'email_verified_at' => $request->user()->email_verified_at,
+        ]);
+    });
+    
+    Route::post('/email/verification-notification', [\App\Http\Controllers\Auth\EmailVerificationNotificationController::class, 'store'])
+        ->middleware('throttle:6,1');
+
     // Standard CRUD resources
     Route::resource('items', ItemsController::class);
     Route::resource('orders', OrdersController::class);
@@ -20,7 +31,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Custom endpoints for combined data
     Route::get('/inventory', [CategoriesController::class, 'inventory']);
-
+    
     Route::get('/export', [DataController::class, 'exportData']);
     Route::get('/export/progress', [DataController::class, 'getExportProgress']);
 });
