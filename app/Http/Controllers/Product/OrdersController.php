@@ -53,7 +53,7 @@ class OrdersController extends Controller
         // Automatically inject company_id from authenticated user
         $data = $request->validatedWithCompany();
         
-        return Order::create($user_id, $data);
+        return Order::createWithItems($user_id, $data);
     }
 
     public function update(UpdateOrderRequest $request, Order $order)

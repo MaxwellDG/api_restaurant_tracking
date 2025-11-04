@@ -9,7 +9,8 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'total_amount', 'completed_at', 'paid_at', 'company_id'];
+    protected $primaryKey = 'uuid';
+    protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status'];
 
     public function user()
     {
@@ -23,7 +24,7 @@ class Order extends Model
 
     public function items()
     {
-        return $this->belongsToMany(Item::class, 'orders_items')
+        return $this->belongsToMany(Item::class, 'orders_items', 'order_id', 'item_id')
                     ->withPivot('quantity', 'unit_price')
                     ->withTimestamps();
     }
@@ -31,22 +32,41 @@ class Order extends Model
     /**
      * Create a new order with items
      */
-    public static function create(int $user_id, array $data)
+    public static function createWithItems(int $user_id, array $data)
     {
         $order = new static();
         $order->user_id = $user_id;
-        $order->total_amount = $data['total_amount'] ?? 0;
+        $order->company_id = $data['company_id'] ?? null;
+        $order->status = 'open';
+        $order->total = 0; // Initialize with 0
+        $order->subtotal = 0; // Initialize with 0
+        
+        // Calculate total amount
+        $totalAmount = 0;
+        
         $order->save();
 
         // Attach items if provided
         if (isset($data['items']) && is_array($data['items'])) {
-            foreach ($data['items'] as $item) {
-                $order->items()->attach($item['item_id'], [
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price']
+            foreach ($data['items'] as $itemData) {
+                // Fetch the item to get the current price
+                $item = Item::find($itemData['item_id']);
+                $unitPrice = $item->price;
+                $quantity = $itemData['quantity'];
+                
+                $order->items()->attach($itemData['item_id'], [
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice
                 ]);
+                
+                $totalAmount += $unitPrice * $quantity;
             }
         }
+        
+        // Update total amount and subtotal
+        $order->total = $totalAmount;
+        $order->subtotal = $totalAmount; // Assuming no tax/fees for now
+        $order->save();
 
         return $order->load('user', 'items');
     }
@@ -56,8 +76,8 @@ class Order extends Model
      */
     public function updateOrder(array $data)
     {
-        if (isset($data['total_amount'])) {
-            $this->total_amount = $data['total_amount'];
+        if (isset($data['total'])) {
+            $this->total = $data['total'];
         }
         
         if (isset($data['items'])) {
@@ -68,8 +88,8 @@ class Order extends Model
             $this->completed_at = $data['completed_at'];
         }
         
-        if (isset($data['paid_at'])) {
-            $this->paid_at = $data['paid_at'];
+        if (isset($data['status'])) {
+            $this->status = $data['status'];
         }
         
         $this->save();
