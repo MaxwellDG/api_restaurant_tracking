@@ -20,20 +20,23 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'company_id' => ['required', 'exists:company,id'],
         ]);
 
+        // todo salt and further improve password saving
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->string('password')),
+            'company_id' => $request->company_id,
         ]);
-
+        
         event(new Registered($user));
-
         Auth::login($user);
 
         return response()->json([
@@ -43,6 +46,7 @@ class RegisteredUserController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'email_verified_at' => $user->email_verified_at,
+                'company_id' => $user->company_id,
             ],
             'requires_email_verification' => true
         ], 201);
