@@ -26,12 +26,20 @@ class CategoriesController extends Controller
 
     public function store(CreateCategoryRequest $request)
     {
+        error_log('=== STORE METHOD CALLED ===');
+        error_log('Authenticated user: ' . json_encode(Auth::user()));
+        
         if (!Auth::user()->is_admin) {
+            error_log('User is not admin, returning 403');
             return response()->json(['error' => 'Unauthorized. Only admin can create categories.'], 403);
         }
+                
+        $category = Category::create($request->validatedWithCompany());
         
-        // Automatically inject company_id from authenticated user
-        return Category::create($request->validatedWithCompany());
+        return response()->json([
+            'message' => 'Category created successfully',
+            'data' => $category
+        ], 201);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category)
