@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Data\DataController;
 use App\Http\Controllers\Product\ItemsController;
 use App\Http\Controllers\Product\CategoriesController;
@@ -64,6 +65,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     Route::get('/export', [DataController::class, 'exportData']);
     Route::get('/export/progress', [DataController::class, 'getExportProgress']);
+
+    Route::resource('company', CompanyController::class);
 });
 
 Route::get("/test", function () {
