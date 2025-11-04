@@ -7,6 +7,7 @@ use App\Http\Requests\Product\IndexOrdersRequest;
 use App\Http\Requests\Product\Orders\CreateOrderRequest;
 use App\Http\Requests\Product\Orders\UpdateOrderRequest;
 use App\Http\Requests\Product\Orders\PayOrderRequest;
+use App\Http\Traits\HasCompanyScope;
 use App\Models\Order;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 class OrdersController extends Controller
 {
+    use HasCompanyScope;
     public function index(IndexOrdersRequest $request)
     {
         $query = Order::with(['items']);
@@ -47,7 +49,11 @@ class OrdersController extends Controller
     public function store(CreateOrderRequest $request)
     {
         $user_id = Auth::id();
-        return Order::create($user_id, $request->all());
+        
+        // Automatically inject company_id from authenticated user
+        $data = $request->validatedWithCompany();
+        
+        return Order::create($user_id, $data);
     }
 
     public function update(UpdateOrderRequest $request, Order $order)

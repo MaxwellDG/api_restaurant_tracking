@@ -21,6 +21,21 @@ class Company extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function categories()
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(Item::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public static function create(array $data)
     {
         return self::create($data);

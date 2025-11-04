@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,17 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
+            ]);
+        }
+
+        // Check if email is verified
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user->hasVerifiedEmail()) {
+            Auth::logout();
+            
+            throw ValidationException::withMessages([
+                'email' => 'Your email address is not verified. Please verify your email before logging in.',
             ]);
         }
 

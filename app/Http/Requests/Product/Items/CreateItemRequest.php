@@ -2,23 +2,23 @@
 
 namespace App\Http\Requests\Product\Items;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\CompanyScopedRequest;
 use Illuminate\Validation\Rule;
 
-class CreateItemRequest extends FormRequest
+class CreateItemRequest extends CompanyScopedRequest
 {
     /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => 'required|string|max:255|unique:items,name',
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:999999.99',
             'image' => 'sometimes|nullable|url',
             'category_id' => 'required|exists:categories,id',
-        ];
+        ], ['company_id' => 'prohibited']);
     }
 
     /**
@@ -26,7 +26,7 @@ class CreateItemRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
+        return array_merge([
             'name.required' => 'The item name is required.',
             'name.string' => 'The item name must be a string.',
             'name.max' => 'The item name may not be greater than 255 characters.',
@@ -40,7 +40,7 @@ class CreateItemRequest extends FormRequest
             'category_id.required' => 'The category is required.',
             'category_id.exists' => 'The selected category does not exist.',
             'image.url' => 'The image URL must be a valid URL.',
-        ];
+        ], $this->baseMessages());
     }
 
     /**
