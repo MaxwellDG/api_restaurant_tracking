@@ -29,12 +29,6 @@ class OrdersController extends Controller
             $query->where('created_at', '<=', $request->endDate);
         }
 
-        if ($request->has('item_id')) {
-            $query->whereHas('items', function ($q) use ($request) {
-                $q->where('items.id', $request->item_id);
-            });
-        }
-
         $page = $request->get('page', 1);
         $orders = $query->paginate(25, ['*'], 'page', $page);
 
