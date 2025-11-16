@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\Category\CreateCategoryRequest;
 use App\Http\Requests\Product\UpdateCategoryRequest;
+use App\Http\Resources\CategoryResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -25,21 +26,14 @@ class CategoriesController extends Controller
     }
 
     public function store(CreateCategoryRequest $request)
-    {
-        error_log('=== STORE METHOD CALLED ===');
-        error_log('Authenticated user: ' . json_encode(Auth::user()));
-        
+    {        
         if (!Auth::user()->is_admin) {
-            error_log('User is not admin, returning 403');
             return response()->json(['error' => 'Unauthorized. Only admin can create categories.'], 403);
         }
                 
         $category = Category::create($request->validatedWithCompany());
         
-        return response()->json([
-            'message' => 'Category created successfully',
-            'data' => $category
-        ], 201);
+        return response()->json(new CategoryResource($category), 201);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category)
@@ -47,7 +41,8 @@ class CategoriesController extends Controller
         if (!Auth::user()->is_admin) {
             return response()->json(['error' => 'Unauthorized. Only admin can update categories.'], 403);
         }
-        return $category->update($request->all());
+        $category->update($request->all());
+        return response()->json(new CategoryResource($category));
     }
     public function destroy(Category $category)
     {
@@ -65,11 +60,7 @@ class CategoriesController extends Controller
         $categories = Category::getCategories();
 
         $categories_with_items = $categories->map(function ($category) {
-            return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'items' => $category->items,
-            ];
+            return new CategoryResource($category);
         });
         return response()->json($categories_with_items);
     }

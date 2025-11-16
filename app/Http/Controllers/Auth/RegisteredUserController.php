@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
@@ -41,13 +42,7 @@ class RegisteredUserController extends Controller
 
         return response()->json([
             'message' => 'Registration successful. Please verify your email address.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'email_verified_at' => $user->email_verified_at,
-                'company_id' => $user->company_id,
-            ],
+            'user' => new UserResource($user),
             'requires_email_verification' => true
         ], 201);
     }

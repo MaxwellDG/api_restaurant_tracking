@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CompanyResource;
 use App\Models\Company;
 use Illuminate\Http\Request;
 
@@ -18,12 +19,12 @@ class CompanyController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
-        return response()->json($company);
+        return response()->json(new CompanyResource($company));
     }
 
     public function show(Company $company)
     {
-        return response()->json($company);
+        return response()->json(new CompanyResource($company));
     }
 
     public function update(Request $request, Company $company)
@@ -40,7 +41,7 @@ class CompanyController extends Controller
         ]);
 
         $company->update($request->all());
-        return response()->json($company);
+        return response()->json(new CompanyResource($company));
     }
 
     public function destroy(Request $request, Company $company)

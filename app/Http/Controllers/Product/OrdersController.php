@@ -6,12 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\IndexOrdersRequest;
 use App\Http\Requests\Product\Orders\CreateOrderRequest;
 use App\Http\Requests\Product\Orders\UpdateOrderRequest;
-use App\Http\Requests\Product\Orders\PayOrderRequest;
+use App\Http\Resources\OrderResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Order;
-use App\Services\OrderService;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class OrdersController extends Controller
@@ -32,12 +29,12 @@ class OrdersController extends Controller
         $page = $request->get('page', 1);
         $orders = $query->paginate(25, ['*'], 'page', $page);
 
-        return response()->json($orders);
+        return response()->json(OrderResource::collection($orders));
     }
 
     public function show(Order $order)
     {
-        return $order->load(['user', 'items']);
+        return response()->json(new OrderResource($order->load(['user', 'items'])));
     }
 
     public function store(CreateOrderRequest $request)
@@ -47,7 +44,8 @@ class OrdersController extends Controller
         // Automatically inject company_id from authenticated user
         $data = $request->validatedWithCompany();
         
-        return Order::createWithItems($user_id, $data);
+        $order = Order::createWithItems($user_id, $data);
+        return response()->json(new OrderResource($order), 201);
     }
 
     public function update(UpdateOrderRequest $request, Order $order)
@@ -56,7 +54,8 @@ class OrdersController extends Controller
             return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can update.'], 403);
         }
         
-        return $order->updateOrder($request->all());
+        $order->updateOrder($request->all());
+        return response()->json(new OrderResource($order));
     }
 
     public function destroy(Order $order)

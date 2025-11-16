@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Product;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\Items\CreateItemRequest;
 use App\Http\Requests\Product\Items\UpdateItemRequest;
+use App\Http\Resources\ItemResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Item;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class ItemsController extends Controller
@@ -17,12 +16,12 @@ class ItemsController extends Controller
     
     public function index()
     {
-        return Item::all();
+        return response()->json(ItemResource::collection(Item::all()));
     }
 
     public function show(Item $item)
     {
-        return $item;
+        return response()->json(new ItemResource($item));
     }
 
     public function store(CreateItemRequest $request)
@@ -32,7 +31,8 @@ class ItemsController extends Controller
         }
         
         // Automatically inject company_id from authenticated user
-        return Item::create($request->validatedWithCompany());
+        $item = Item::create($request->validatedWithCompany());
+        return response()->json(new ItemResource($item), 201);
     }
 
     public function update(UpdateItemRequest $request, Item $item)
@@ -40,7 +40,8 @@ class ItemsController extends Controller
         if (!Auth::user()->is_admin) {
             return response()->json(['error' => 'Unauthorized. Only admin can update items.'], 403);
         }
-        return $item->update($request->all());
+        $item->update($request->all());
+        return response()->json(new ItemResource($item));
     }
 
     public function destroy(Item $item)
