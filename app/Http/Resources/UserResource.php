@@ -12,10 +12,10 @@ class UserResource extends JsonResource
             'id' => $this->resource->id,
             'name' => $this->resource->name,
             'email' => $this->resource->email,
-            'company' => new CompanyResource($this->resource->company),
+            'company_id' => $this->resource->company_id,
             'created_at' => $this->resource->created_at,
             'updated_at' => $this->resource->updated_at,
-            'is_admin' => $this->resource->is_admin,
+            'role' => $this->resource->role,
             'email_verified_at' => $this->resource->email_verified_at,
         ];
     }

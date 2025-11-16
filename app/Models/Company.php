@@ -35,14 +35,4 @@ class Company extends Model
     {
         return $this->hasMany(Order::class);
     }
-
-    public static function create(array $data)
-    {
-        return self::create($data);
-    }
-
-    public static function find(int $id)
-    {
-        return self::find($id);
-    }
 }

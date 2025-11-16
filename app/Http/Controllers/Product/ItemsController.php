@@ -26,7 +26,7 @@ class ItemsController extends Controller
 
     public function store(CreateItemRequest $request)
     {
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can create items.'], 403);
         }
         
@@ -37,7 +37,7 @@ class ItemsController extends Controller
 
     public function update(UpdateItemRequest $request, Item $item)
     {
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can update items.'], 403);
         }
         $item->update($request->all());
@@ -46,7 +46,7 @@ class ItemsController extends Controller
 
     public function destroy(Item $item)
     {
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can delete items.'], 403);
         }
         return $item->delete();

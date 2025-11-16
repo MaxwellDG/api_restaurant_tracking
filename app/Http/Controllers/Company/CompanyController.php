@@ -1,10 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Company;
 
+use App\Http\Controllers\Controller;
 use App\Http\Resources\CompanyResource;
+use App\Http\Resources\UserResource;
 use App\Models\Company;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CompanyController extends Controller
 {
@@ -19,12 +23,12 @@ class CompanyController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
-        return response()->json(new CompanyResource($company));
+        return new CompanyResource($company);
     }
 
     public function show(Company $company)
-    {
-        return response()->json(new CompanyResource($company));
+    {        
+        return new CompanyResource($company);
     }
 
     public function update(Request $request, Company $company)
@@ -41,7 +45,7 @@ class CompanyController extends Controller
         ]);
 
         $company->update($request->all());
-        return response()->json(new CompanyResource($company));
+        return new CompanyResource($company);
     }
 
     public function destroy(Request $request, Company $company)

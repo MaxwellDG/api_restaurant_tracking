@@ -22,12 +22,12 @@ class CategoriesController extends Controller
 
     public function show(Category $category)
     {
-        return $category;
+        return response()->json(new CategoryResource($category));
     }
 
     public function store(CreateCategoryRequest $request)
     {        
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can create categories.'], 403);
         }
                 
@@ -38,7 +38,7 @@ class CategoriesController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can update categories.'], 403);
         }
         $category->update($request->all());
@@ -46,7 +46,7 @@ class CategoriesController extends Controller
     }
     public function destroy(Category $category)
     {
-        if (!Auth::user()->is_admin) {
+        if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can delete categories.'], 403);
         }
         return $category->delete();

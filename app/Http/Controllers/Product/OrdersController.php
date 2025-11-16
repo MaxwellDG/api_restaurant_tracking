@@ -50,7 +50,7 @@ class OrdersController extends Controller
 
     public function update(UpdateOrderRequest $request, Order $order)
     {
-        if ($order->user_id !== Auth::id() && !Auth::user()->is_admin) {
+        if ($order->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can update.'], 403);
         }
         
@@ -60,7 +60,7 @@ class OrdersController extends Controller
 
     public function destroy(Order $order)
     {
-        if ($order->user_id !== Auth::id() && !Auth::user()->is_admin) {
+        if ($order->user_id !== Auth::id() && !Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only the owner of the order or admin can delete.'], 403);
         }
         return $order->delete();
