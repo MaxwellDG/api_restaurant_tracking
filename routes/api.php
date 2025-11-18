@@ -64,6 +64,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('orders', OrdersController::class);
     Route::resource('categories', CategoriesController::class);
     Route::resource('companies', CompanyController::class)->except(['index']);
+    
+    // Company join endpoint
+    Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
 
     // Custom endpoints for combined data
     Route::get('/inventory', [CategoriesController::class, 'inventory']);

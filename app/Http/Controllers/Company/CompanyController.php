@@ -70,4 +70,25 @@ class CompanyController extends Controller
         $company->delete();
         return response()->json(['message' => 'Company deleted successfully']);
     }
+
+    public function join(Request $request, Company $company)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Check if user is already in a company
+        if ($user->company_id) {
+            return response()->json([
+                'message' => 'You are already a member of a company.'
+            ], 400);
+        }
+
+        // Join the company
+        $user->joinCompany($company);
+
+        return response()->json([
+            'message' => 'Successfully joined company.',
+            'company' => new CompanyResource($company)
+        ]);
+    }
 }

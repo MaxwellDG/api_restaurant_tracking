@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'company_id',
         'role',
+        'status',
     ];
 
     /**
@@ -68,6 +69,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $this->company_id = $company->id;
         $this->role = 'admin';
+        $this->save();
+    }
+
+    public function joinCompany(Company $company): void 
+    {
+        $this->company_id = $company->id;
+        $this->role = 'user';
         $this->save();
     }
 }
