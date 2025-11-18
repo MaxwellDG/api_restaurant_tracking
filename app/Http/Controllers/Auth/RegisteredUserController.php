@@ -26,7 +26,6 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'company_id' => ['required', 'exists:company,id'],
         ]);
 
         // todo salt and further improve password saving
@@ -34,16 +33,22 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->string('password')),
-            'company_id' => $request->company_id,
         ]);
         
         event(new Registered($user));
         Auth::login($user);
 
+        // Create access token with standard abilities
+        $accessToken = $user->createToken('access-token', ['*'])->plainTextToken;
+        // Create refresh token with limited ability
+        $refreshToken = $user->createToken('refresh-token', ['refresh'])->plainTextToken;
+
         return response()->json([
             'message' => 'Registration successful. Please verify your email address.',
             'user' => new UserResource($user),
-            'requires_email_verification' => true
+            'requires_email_verification' => true,
+            'token' => $accessToken,
+            'refresh_token' => $refreshToken,
         ], 201);
     }
 }

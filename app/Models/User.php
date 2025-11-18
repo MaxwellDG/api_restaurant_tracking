@@ -45,7 +45,6 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
         ];
     }
 
@@ -60,5 +59,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    /**
+     * Join or set the user's company
+     */
+    public function createCompany(Company $company): void
+    {
+        $this->company_id = $company->id;
+        $this->role = 'admin';
+        $this->save();
     }
 }

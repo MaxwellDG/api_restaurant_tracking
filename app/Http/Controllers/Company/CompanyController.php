@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CompanyResource;
-use App\Http\Resources\UserResource;
 use App\Models\Company;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,14 +12,26 @@ class CompanyController extends Controller
 {
     public function store(Request $request)
     {
+        if (!Auth::check()) {
+            return response()->json([
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
         $company = Company::create([
             'name' => $request->name,
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id
         ]);
+
+        // Update the user's company_id to the newly created company
+        $user->createCompany($company);
 
         return new CompanyResource($company);
     }

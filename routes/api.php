@@ -63,7 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('items', ItemsController::class);
     Route::resource('orders', OrdersController::class);
     Route::resource('categories', CategoriesController::class);
-    Route::resource('companies', CompanyController::class);
+    Route::resource('companies', CompanyController::class)->except(['index']);
 
     // Custom endpoints for combined data
     Route::get('/inventory', [CategoriesController::class, 'inventory']);
