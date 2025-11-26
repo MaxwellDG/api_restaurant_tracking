@@ -55,7 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
-
+    Route::get("/user", [AuthenticatedSessionController::class, 'index']);
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 
@@ -66,7 +66,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('companies', CompanyController::class)->except(['index']);
     
     // Company join endpoint
-    Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
+    Route::post('/companies/join', [CompanyController::class, 'join']);
 
     // Custom endpoints for combined data
     Route::get('/inventory', [CategoriesController::class, 'inventory']);

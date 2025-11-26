@@ -12,6 +12,20 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthenticatedSessionController extends Controller
 {
+
+
+    public function index(): JsonResponse
+    {
+        $user = new UserResource(Auth::user());
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found',
+            ], 404);
+        }
+        return response()->json($user, 200);
+    }
+
+
     /**
      * Handle an incoming authentication request.
      */

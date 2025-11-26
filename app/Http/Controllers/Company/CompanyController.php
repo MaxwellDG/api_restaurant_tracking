@@ -71,16 +71,29 @@ class CompanyController extends Controller
         return response()->json(['message' => 'Company deleted successfully']);
     }
 
-    public function join(Request $request, Company $company)
+    public function join(Request $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+
+        // Validate the request
+        $request->validate([
+            'company_id' => ['required', 'integer']
+        ]);
 
         // Check if user is already in a company
         if ($user->company_id) {
             return response()->json([
                 'message' => 'You are already a member of a company.'
             ], 400);
+        }
+
+        // Check if company doesn't exist
+        $company = Company::find($request->company_id);
+        if (!$company) {
+            return response()->json([
+                'message' => 'Company not found.'
+            ], 404);
         }
 
         // Join the company
