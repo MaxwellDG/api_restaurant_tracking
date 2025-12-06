@@ -35,6 +35,28 @@ class Order extends Model
      */
     public static function createWithItems(int $user_id, array $data)
     {
+        // Step 1: Validate existence of all items first
+        if (isset($data['items']) && is_array($data['items'])) {
+            $itemIds = array_column($data['items'], 'item_id');
+            $existingItems = Item::whereIn('id', $itemIds)->pluck('id')->toArray();
+            
+            $missingItems = array_diff($itemIds, $existingItems);
+            if (!empty($missingItems)) {
+                throw new \Exception('Items not found: ' . implode(', ', $missingItems));
+            }
+            
+            // Step 2: Check quantity availability for each item
+            foreach ($data['items'] as $itemData) {
+                $item = Item::find($itemData['item_id']);
+                $requestedQuantity = $itemData['quantity'];
+                
+                // Check if requested quantity exceeds available quantity
+                if ($item->quantity - $requestedQuantity < 0) {
+                    throw new \Exception("Insufficient quantity for item '{$item->name}' (ID: {$item->id}). Available: {$item->quantity}, Requested: {$requestedQuantity}");
+                }
+            }
+        }
+        
         $order = new static();
         $order->user_id = $user_id;
         $order->company_id = $data['company_id'] ?? null;

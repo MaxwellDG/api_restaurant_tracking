@@ -40,7 +40,7 @@ class ItemsController extends Controller
         if (!Auth::user()->isAdmin()) {
             return response()->json(['error' => 'Unauthorized. Only admin can update items.'], 403);
         }
-        $item->update($request->all());
+        $item->update($request->validated());
         return response()->json(new ItemResource($item));
     }
 

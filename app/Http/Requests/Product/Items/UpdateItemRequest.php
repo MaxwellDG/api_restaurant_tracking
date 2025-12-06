@@ -29,7 +29,8 @@ class UpdateItemRequest extends FormRequest
             ],
             'description' => 'sometimes|nullable|string|max:1000',
             'price' => 'sometimes|required|numeric|min:0|max:999999.99',
-            'category_id' => 'sometimes|required|exists:categories,id',
+            'quantity' => 'sometimes|integer|min:0',
+            'type_of_unit' => 'sometimes|string|max:255',
             'image' => 'sometimes|nullable|url',
         ];
     }
@@ -50,8 +51,10 @@ class UpdateItemRequest extends FormRequest
             'price.numeric' => 'The price must be a valid number.',
             'price.min' => 'The price must be at least 0.',
             'price.max' => 'The price may not be greater than 999,999.99.',
-            'category_id.required' => 'The category is required.',
-            'category_id.exists' => 'The selected category does not exist.',
+            'quantity.integer' => 'The quantity must be a valid number.',
+            'quantity.min' => 'The quantity must be at least 0.',
+            'type_of_unit.string' => 'The unit type must be a string.',
+            'type_of_unit.max' => 'The unit type may not be greater than 255 characters.',
             'image.url' => 'The image URL must be a valid URL.',
         ];
     }
@@ -65,7 +68,8 @@ class UpdateItemRequest extends FormRequest
             'name' => 'item name',
             'description' => 'item description',
             'price' => 'item price',
-            'category_id' => 'category',
+            'quantity' => 'quantity',
+            'type_of_unit' => 'unit type',
             'image' => 'image URL',
         ];
     }

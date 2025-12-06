@@ -12,6 +12,21 @@ class Company extends Model
 
     protected $fillable = ['name', 'user_id'];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Automatically create a fee entry when a company is created
+        static::created(function ($company) {
+            Fee::create([
+                'company_id' => $company->id,
+                'name' => 'Tax',
+                'value' => 0,
+                'applies_to' => 'order'
+            ]);
+        });
+    }
+
     public function users()
     {
         return $this->hasMany(User::class, 'company_id');
@@ -35,5 +50,10 @@ class Company extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function fee()
+    {
+        return $this->hasOne(Fee::class);
     }
 }

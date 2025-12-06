@@ -10,6 +10,7 @@ use App\Http\Controllers\Company\CompanyController;
 use App\Http\Controllers\Data\DataController;
 use App\Http\Controllers\Product\ItemsController;
 use App\Http\Controllers\Product\CategoriesController;
+use App\Http\Controllers\Product\FeesController;
 use App\Http\Controllers\Product\OrdersController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -63,6 +64,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::resource('items', ItemsController::class);
     Route::resource('orders', OrdersController::class);
     Route::resource('categories', CategoriesController::class);
+    Route::resource('fees', FeesController::class);
     Route::resource('companies', CompanyController::class)->except(['index']);
     
     // Company join endpoint

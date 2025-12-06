@@ -24,6 +24,8 @@ class CreateItemRequest extends CompanyScopedRequest
             ],
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:999999.99',
+            'quantity' => 'sometimes|integer|min:0',
+            'type_of_unit' => 'sometimes|string|max:255',
             'image' => 'sometimes|nullable|url',
             'category_id' => 'required|exists:categories,id',
         ], ['company_id' => 'prohibited']);
