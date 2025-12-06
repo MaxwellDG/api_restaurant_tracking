@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Product\Items;
 
 use App\Http\Requests\CompanyScopedRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class CreateItemRequest extends CompanyScopedRequest
@@ -12,8 +13,15 @@ class CreateItemRequest extends CompanyScopedRequest
      */
     public function rules(): array
     {
+        $companyId = Auth::user()->company_id;
+        
         return array_merge([
-            'name' => 'required|string|max:255|unique:items,name',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('items', 'name')->where('company_id', $companyId)
+            ],
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:999999.99',
             'image' => 'sometimes|nullable|url',

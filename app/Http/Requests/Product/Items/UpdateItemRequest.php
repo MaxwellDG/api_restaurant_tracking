@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Product\Items;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class UpdateItemRequest extends FormRequest
@@ -12,7 +13,9 @@ class UpdateItemRequest extends FormRequest
      */
     public function rules(): array
     {
-        $itemId = $this->route('item') ?? $this->route('id');
+        $item = $this->route('item');
+        $itemId = $item ? $item->id : $this->route('id');
+        $companyId = Auth::user()->company_id;
         
         return [
             'name' => [
@@ -20,7 +23,9 @@ class UpdateItemRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('items', 'name')->ignore($itemId)
+                Rule::unique('items', 'name')
+                    ->ignore($itemId)
+                    ->where('company_id', $companyId)
             ],
             'description' => 'sometimes|nullable|string|max:1000',
             'price' => 'sometimes|required|numeric|min:0|max:999999.99',
