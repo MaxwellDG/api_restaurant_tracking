@@ -58,6 +58,8 @@ class Order extends Model
         return $fees;
     }
 
+
+
     /**
      * Create a new order with items
      */
@@ -88,50 +90,53 @@ class Order extends Model
             }
         }
         
-        $order = new static();
-        $order->uuid = (string) \Illuminate\Support\Str::uuid();
-        $order->user_id = $user_id;
-        $order->company_id = $companyId;
-        $order->status = 'open';
-        $order->total = 0; // Initialize with 0
-        $order->subtotal = 0; // Initialize with 0
-        
-        $order->save();
-        
-        // Calculate subtotal
-        $subtotal = 0;
-        foreach ($items as $item) {
-            // Fetch the item to get the current price
-            $unitPrice = $item->price;
-            $payloadQuantity = $itemsData[$item->id]['quantity'];
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($user_id, $companyId, $items, $itemsData) {
+            $order = new static();
+            $order->uuid = (string) \Illuminate\Support\Str::uuid();
+            $order->user_id = $user_id;
+            $order->company_id = $companyId;
+            $order->status = 'open';
+            $order->total = 0;
+            $order->subtotal = 0;
             
-            $order->items()->attach($item->id, [
-                'quantity' => $payloadQuantity,
-                'unit_price' => $unitPrice
-            ]);
+            $order->save();
             
-            $subtotal += $unitPrice * $payloadQuantity;
-        }
-        $order->subtotal = $subtotal;
+            // Calculate subtotal
+            $subtotal = 0;
+            foreach ($items as $item) {
+                $unitPrice = $item->price;
+                $payloadQuantity = $itemsData[$item->id]['quantity'];
+                
+                $order->items()->attach($item->id, [
+                    'quantity' => $payloadQuantity,
+                    'unit_price' => $unitPrice
+                ]);
+                
+                $item->decrement('quantity', $payloadQuantity);
+                
+                $subtotal += $unitPrice * $payloadQuantity;
+            }
+            $order->subtotal = $subtotal;
 
-        // Calculate fees
-        $fees = Company::find($companyId)->fees;
-        $calculatedFees = self::calculateFees($subtotal, $fees->toArray());
+            // Calculate fees
+            $fees = Company::find($companyId)->fees;
+            $calculatedFees = self::calculateFees($subtotal, $fees->toArray());
 
-        // Calculate total
-        $total = $subtotal;
-        foreach ($calculatedFees as $fee) {
-            $total += $fee['value'];
-        }
-        $order->total = $total;
-        $order->save();
+            // Calculate total
+            $total = $subtotal;
+            foreach ($calculatedFees as $fee) {
+                $total += $fee['value'];
+            }
+            $order->total = $total;
+            $order->save();
 
-        // Attach fees to order
-        foreach ($calculatedFees as $fee) {
-            $order->fees()->attach($fee['fee_id'], ['value' => $fee['value']]);
-        }
+            // Attach fees to order
+            foreach ($calculatedFees as $fee) {
+                $order->fees()->attach($fee['fee_id'], ['value' => $fee['value']]);
+            }
 
-        return $order->load('user', 'items', 'fees');
+            return $order->load('user', 'items', 'fees');
+        });
     }
 
     /**
