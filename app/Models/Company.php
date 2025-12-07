@@ -52,8 +52,8 @@ class Company extends Model
         return $this->hasMany(Order::class);
     }
 
-    public function fee()
+    public function fees()
     {
-        return $this->hasOne(Fee::class);
+        return $this->hasMany(Fee::class);
     }
 }

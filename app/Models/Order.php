@@ -11,6 +11,8 @@ class Order extends Model
     use HasFactory, SoftDeletes;
 
     protected $primaryKey = 'uuid';
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status'];
 
     public function user()
@@ -30,68 +32,106 @@ class Order extends Model
                     ->withTimestamps();
     }
 
+    public function fees()
+    {
+        return $this->belongsToMany(Fee::class, 'orders_fees', 'order_id', 'fee_id')
+                    ->withPivot('value')
+                    ->withTimestamps();
+    }
+
+    /* 
+        todo: this function should be expanded upon when "applies_to" is expanded upon. Will 
+        also be adding different types of modifiers (mul, sub, sum, div etc...)
+    */
+    private static function calculateFees(float $subtotal, array $fees)
+    {
+        $fees = [];
+        foreach ($fees as $fee) {
+            if($fee->applies_to === 'order') {
+                $tax = round($subtotal * $fee->value, 2);
+                $fees[] = [
+                    'fee_id' => $fee->id,
+                    'value' => $tax
+                ];
+            }
+        }
+        return $fees;
+    }
+
     /**
      * Create a new order with items
      */
     public static function createWithItems(int $user_id, array $data)
     {
-        // Step 1: Validate existence of all items first
-        if (isset($data['items']) && is_array($data['items'])) {
-            $itemIds = array_column($data['items'], 'item_id');
-            $existingItems = Item::whereIn('id', $itemIds)->pluck('id')->toArray();
-            
-            $missingItems = array_diff($itemIds, $existingItems);
-            if (!empty($missingItems)) {
-                throw new \Exception('Items not found: ' . implode(', ', $missingItems));
+        $companyId = $data['company_id'];
+        $itemsData = collect($data['items'])->keyBy('id');
+        $itemIds = $itemsData->pluck("id")->toArray();
+        $items = Item::whereIn('id', $itemIds)->get();
+
+        // Step 1: Validate existence of all items
+        $existingItems = $items->pluck('id')->toArray();
+        $missingItems = array_diff($itemIds, $existingItems);
+        if (!empty($missingItems)) {
+            throw new \Exception('Items not found: ' . implode(', ', $missingItems));
+        }
+
+        foreach ($items as $item) {
+            // Step 2: Ensure each item requested is part of this company
+            if ($item->company_id !== $companyId) {
+                throw new \Exception("Item '{$item->name}' (ID: {$item->id}) does not belong to this company.");
             }
-            
-            // Step 2: Check quantity availability for each item
-            foreach ($data['items'] as $itemData) {
-                $item = Item::find($itemData['item_id']);
-                $requestedQuantity = $itemData['quantity'];
-                
-                // Check if requested quantity exceeds available quantity
-                if ($item->quantity - $requestedQuantity < 0) {
-                    throw new \Exception("Insufficient quantity for item '{$item->name}' (ID: {$item->id}). Available: {$item->quantity}, Requested: {$requestedQuantity}");
-                }
+
+            // Step 3: Check if requested quantity exceeds available quantity
+            $payloadQuantity = $itemsData[$item->id]['quantity'];
+            if ($item->quantity - $payloadQuantity < 0) {
+                throw new \Exception("Insufficient quantity for item '{$item->name}' (ID: {$item->id}). Available: {$item->quantity}, Requested: {$requestedQuantity}");
             }
         }
         
         $order = new static();
+        $order->uuid = (string) \Illuminate\Support\Str::uuid();
         $order->user_id = $user_id;
-        $order->company_id = $data['company_id'] ?? null;
+        $order->company_id = $companyId;
         $order->status = 'open';
         $order->total = 0; // Initialize with 0
         $order->subtotal = 0; // Initialize with 0
         
-        // Calculate total amount
-        $totalAmount = 0;
-        
         $order->save();
-
-        // Attach items if provided
-        if (isset($data['items']) && is_array($data['items'])) {
-            foreach ($data['items'] as $itemData) {
-                // Fetch the item to get the current price
-                $item = Item::find($itemData['item_id']);
-                $unitPrice = $item->price;
-                $quantity = $itemData['quantity'];
-                
-                $order->items()->attach($itemData['item_id'], [
-                    'quantity' => $quantity,
-                    'unit_price' => $unitPrice
-                ]);
-                
-                $totalAmount += $unitPrice * $quantity;
-            }
+        
+        // Calculate subtotal
+        $subtotal = 0;
+        foreach ($items as $item) {
+            // Fetch the item to get the current price
+            $unitPrice = $item->price;
+            $payloadQuantity = $itemsData[$item->id]['quantity'];
+            
+            $order->items()->attach($item->id, [
+                'quantity' => $payloadQuantity,
+                'unit_price' => $unitPrice
+            ]);
+            
+            $subtotal += $unitPrice * $payloadQuantity;
         }
-        
-        // Update total amount and subtotal
-        $order->total = $totalAmount;
-        $order->subtotal = $totalAmount; // Assuming no tax/fees for now
+        $order->subtotal = $subtotal;
+
+        // Calculate fees
+        $fees = Company::find($companyId)->fees;
+        $calculatedFees = self::calculateFees($subtotal, $fees->toArray());
+
+        // Calculate total
+        $total = $subtotal;
+        foreach ($calculatedFees as $fee) {
+            $total += $fee['value'];
+        }
+        $order->total = $total;
         $order->save();
 
-        return $order->load('user', 'items');
+        // Attach fees to order
+        foreach ($calculatedFees as $fee) {
+            $order->fees()->attach($fee['fee_id'], ['value' => $fee['value']]);
+        }
+
+        return $order->load('user', 'items', 'fees');
     }
 
     /**
