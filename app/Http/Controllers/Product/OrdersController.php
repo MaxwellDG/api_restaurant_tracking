@@ -3,33 +3,44 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Product\IndexOrdersRequest;
 use App\Http\Requests\Product\Orders\CreateOrderRequest;
+use App\Http\Requests\Product\Orders\IndexOrdersRequest;
 use App\Http\Requests\Product\Orders\UpdateOrderRequest;
+use App\Http\Resources\OrderIndexResource;
 use App\Http\Resources\OrderResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Order;
+use App\Repositories\OrdersRepository;
 use Illuminate\Support\Facades\Auth;
 
 class OrdersController extends Controller
 {
     use HasCompanyScope;
+
+    public function __construct(
+        private OrdersRepository $ordersRepository
+    ) {}
+
     public function index(IndexOrdersRequest $request)
-    {
-        $query = Order::with(['items']);
+    {        
+        $orders = $this->ordersRepository->getOrders(
+            $this->getAuthCompanyId(),
+            $request->input('start_date'),
+            $request->input('end_date'),
+            $request->input('status'),
+            $request->input('page', 1)
+        );
 
-        if ($request->has('start_date')) {
-            $query->where('created_at', '>=', $request->startDate);
-        }
-
-        if ($request->has('end_date')) {
-            $query->where('created_at', '<=', $request->endDate);
-        }
-
-        $page = $request->get('page', 1);
-        $orders = $query->paginate(25, ['*'], 'page', $page);
-
-        return response()->json(OrderResource::collection($orders));
+        return response()->json([
+            'data' => OrderIndexResource::collection($orders),
+            'pagination' => [
+                'currentPage' => $orders->currentPage(),
+                'totalPages' => $orders->lastPage(),
+                'totalCount' => $orders->total(),
+                'hasNext' => $orders->hasMorePages(),
+                'hasPrevious' => $orders->currentPage() > 1,
+            ],
+        ]);
     }
 
     public function show(Order $order)
