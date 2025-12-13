@@ -3,10 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Order extends Model
+class Order extends BaseModel
 {
     use HasFactory, SoftDeletes;
 
@@ -14,6 +13,10 @@ class Order extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status', 'receipt_id'];
+    
+    protected $casts = [
+        'completed_at' => 'datetime',
+    ];
 
     public function user()
     {
@@ -162,7 +165,7 @@ class Order extends Model
 
         if (array_key_exists('receipt_id', $data)) {
             $this->receipt_id = $data['receipt_id'];
-            $this->status = $data['receipt_id'] !== null ? 'completed' : 'open';
+            $this->status = $data['receipt_id'] !== null ? 'completed' : 'pending';
             $this->completed_at = $data['receipt_id'] !== null ? now() : null;
         }
         

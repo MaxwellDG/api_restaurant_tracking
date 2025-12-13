@@ -21,17 +21,19 @@ class ExportCsvJob implements ShouldQueue
     protected $email;
     protected $exportId;
     protected $totalCount;
+    protected $companyId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($startDate, $endDate, $email, $exportId, $totalCount)
+    public function __construct($startDate, $endDate, $email, $exportId, $totalCount, $companyId)
     {
         $this->startDate = $startDate;
         $this->endDate = $endDate;
         $this->email = $email;
         $this->exportId = $exportId;
         $this->totalCount = $totalCount;
+        $this->companyId = $companyId;
     }
 
     /**
@@ -55,32 +57,32 @@ class ExportCsvJob implements ShouldQueue
             // Write CSV headers
             $headers = [
                 'Order ID',
-                'Customer Email',
-                'Customer Name',
-                'Order Date',
-                'Total Amount',
+                'Receipt ID',
+                'Subtotal',
+                'Total',
+                'Created At',
                 'Completed At',
-                'Paid At',
-                'Item Name',
-                'Item Description',
-                'Item Price',
-                'Quantity',
-                'Unit Price',
-                'Item Total'
             ];
             
             fputcsv($output, $headers);
             
             $chunkSize = 100; // Process 100 orders at a time
             
+            Log::info("ExportCsvJob: Starting order query", [
+                'company_id' => $this->companyId,
+                'start_date' => $this->startDate,
+                'end_date' => $this->endDate,
+                'export_id' => $this->exportId,
+            ]);
+
             // Use chunked queries to process orders in batches
-            Order::whereHas('user', function ($query) {
-                    $query->where('email', $this->email);
-                })
+            Order::where('company_id', $this->companyId)
+                ->where('orders.status', 'completed')
                 ->where('orders.created_at', '>=', $this->startDate)
                 ->where('orders.created_at', '<=', $this->endDate)
                 ->orderBy('created_at', 'desc')
                 ->chunk($chunkSize, function ($orders) use ($output, &$processed) {
+                    Log::info("ExportCsvJob: Processing chunk", ['chunk_count' => $orders->count()]);
                     // Load relationships for this chunk
                     $orders->load('user', 'items');
                     
@@ -103,6 +105,11 @@ class ExportCsvJob implements ShouldQueue
                 });
             
             fclose($output);
+
+            Log::info("ExportCsvJob: Query complete", [
+                'total_processed' => $processed,
+                'export_id' => $this->exportId,
+            ]);
             
             // Send email with CSV attachment
             $this->sendCsvEmail($this->email, $filePath, $filename, $processed);
@@ -152,34 +159,24 @@ class ExportCsvJob implements ShouldQueue
      */
     private function writeOrderToCsv($output, $order)
     {
+        $createdAt = $order->created_at instanceof \DateTimeInterface 
+            ? $order->created_at->format('c') 
+            : $order->created_at;
+            
+        $completedAt = $order->completed_at instanceof \DateTimeInterface 
+            ? $order->completed_at->format('c') 
+            : ($order->completed_at ?? '');
+
         $orderData = [
-            $order->id,
-            $order->user->email ?? '',
-            $order->user->name ?? '',
-            $order->created_at->format('Y-m-d H:i:s'),
-            $order->total_amount,
-            $order->completed_at ? $order->completed_at->format('Y-m-d H:i:s') : '',
-            $order->paid_at ? $order->paid_at->format('Y-m-d H:i:s') : '',
+            $order->uuid,
+            $order->receipt_id ?? '',
+            $order->subtotal,
+            $order->total,
+            $createdAt,
+            $completedAt,
         ];
         
-        if ($order->items->count() > 0) {
-            foreach ($order->items as $item) {
-                $itemData = array_merge($orderData, [
-                    $item->name,
-                    $item->description,
-                    $item->price,
-                    $item->pivot->quantity,
-                    $item->pivot->unit_price,
-                    $item->pivot->quantity * $item->pivot->unit_price
-                ]);
-                
-                fputcsv($output, $itemData);
-            }
-        } else {
-            // If no items, still include the order with empty item fields
-            $itemData = array_merge($orderData, ['', '', '', '', '', '']);
-            fputcsv($output, $itemData);
-        }
+        fputcsv($output, $orderData);
     }
 
     /**

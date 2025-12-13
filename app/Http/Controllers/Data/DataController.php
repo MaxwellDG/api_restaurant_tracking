@@ -10,6 +10,7 @@ use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache as CacheFacade;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use App\Jobs\ExportCsvJob;
@@ -34,20 +35,34 @@ class DataController extends Controller
      */
     public function exportData(ExportDataRequest $request)
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        $address = $request->address;
+        $start_date = $this->parseDate($request->start_date);
+        $end_date = $this->parseDate($request->end_date);
+        $email = $request->email;
+        $companyId = Auth::user()->company_id;
+
+        Log::info("Export request received", [
+            'raw_start_date' => $request->start_date,
+            'raw_end_date' => $request->end_date,
+            'parsed_start_date' => $start_date,
+            'parsed_end_date' => $end_date,
+            'email' => $email,
+            'company_id' => $companyId,
+        ]);
 
         // Generate a unique export ID for progress tracking
         $exportId = 'export_' . uniqid();
         
         // Get total count for progress calculation
-        $totalCount = Order::whereHas('user', function ($query) use ($address) {
-                $query->where('email', $address);
-            })
+        $totalCount = Order::where('company_id', $companyId)
+            ->where('orders.status', 'completed')
             ->where('orders.created_at', '>=', $start_date)
             ->where('orders.created_at', '<=', $end_date)
             ->count();
+
+        Log::info("Export order count", [
+            'total_count' => $totalCount,
+            'export_id' => $exportId,
+        ]);
 
         // Initialize progress tracking
         CacheFacade::put("export_progress_{$exportId}", [
@@ -55,17 +70,17 @@ class DataController extends Controller
             'processed' => 0,
             'percentage' => 0,
             'status' => 'processing',
-            'email' => $address
+            'email' => $email
         ], 3600); // Cache for 1 hour
 
         // Dispatch the export job to the queue
-        ExportCsvJob::dispatch($start_date, $end_date, $address, $exportId, $totalCount);
+        ExportCsvJob::dispatch($start_date, $end_date, $email, $exportId, $totalCount, $companyId);
 
         return response()->json([
             'message' => 'Export started successfully',
             'export_id' => $exportId,
             'total_orders' => $totalCount,
-            'email' => $address
+            'email' => $email
         ], 202);
     }
 
@@ -119,10 +134,10 @@ class DataController extends Controller
                 $order->id,
                 $order->user->email ?? '',
                 $order->user->name ?? '',
-                $order->created_at->format('Y-m-d H:i:s'),
+                $order->created_at->format('c'),
                 $order->total_amount,
-                $order->completed_at ? $order->completed_at->format('Y-m-d H:i:s') : '',
-                $order->paid_at ? $order->paid_at->format('Y-m-d H:i:s') : '',
+                $order->completed_at ? $order->completed_at->format('c') : '',
+                $order->paid_at ? $order->paid_at->format('c') : '',
             ];
             
             if ($order->items->count() > 0) {
@@ -131,10 +146,10 @@ class DataController extends Controller
                         $order->id,
                         $order->user->email ?? '',
                         $order->user->name ?? '',
-                        $order->created_at->format('Y-m-d H:i:s'),
+                        $order->created_at->format('c'),
                         $order->total_amount,
-                        $order->completed_at ? $order->completed_at->format('Y-m-d H:i:s') : '',
-                        $order->paid_at ? $order->paid_at->format('Y-m-d H:i:s') : '',
+                        $order->completed_at ? $order->completed_at->format('c') : '',
+                        $order->paid_at ? $order->paid_at->format('c') : '',
                         $item->name,
                         $item->description,
                         $item->price,
@@ -162,5 +177,21 @@ class DataController extends Controller
             return '"' . str_replace('"', '""', $field) . '"';
         }
         return $field;
+    }
+
+    /**
+     * Parse a date from Unix timestamp (seconds or milliseconds) or date string
+     */
+    private function parseDate($value): string
+    {
+        if (is_numeric($value)) {
+            $timestamp = (int) $value;
+            // If timestamp is in milliseconds (13+ digits), convert to seconds
+            if ($timestamp > 9999999999) {
+                $timestamp = (int) ($timestamp / 1000);
+            }
+            return date('Y-m-d H:i:s', $timestamp);
+        }
+        return date('Y-m-d H:i:s', strtotime($value));
     }
 }

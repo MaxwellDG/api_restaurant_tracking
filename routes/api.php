@@ -74,7 +74,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Custom endpoints for combined data
     Route::get('/inventory', [CategoriesController::class, 'inventory']);
     
-    Route::get('/export', [DataController::class, 'exportData']);
+    Route::post('/export', [DataController::class, 'exportData']);
     Route::get('/export/progress', [DataController::class, 'getExportProgress']);
 
 });

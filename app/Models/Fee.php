@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Fee extends Model
+class Fee extends BaseModel
 {
     protected $fillable = ['name', 'value', 'applies_to', 'company_id'];
 
