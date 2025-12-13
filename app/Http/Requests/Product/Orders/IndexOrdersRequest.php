@@ -18,7 +18,7 @@ class IndexOrdersRequest extends FormRequest
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'item_id' => 'nullable|integer|exists:items,id',
             'page' => 'nullable|integer|min:1',
-            'status' => 'nullable|string|in:open,closed,paid,cancelled',
+            'status' => 'nullable|string|in:open,pending,completed',
         ];
     }
 
