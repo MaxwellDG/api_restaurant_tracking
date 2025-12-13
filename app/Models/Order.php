@@ -13,7 +13,7 @@ class Order extends Model
     protected $primaryKey = 'uuid';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status'];
+    protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status', 'receipt_id'];
 
     public function user()
     {
@@ -43,19 +43,19 @@ class Order extends Model
         todo: this function should be expanded upon when "applies_to" is expanded upon. Will 
         also be adding different types of modifiers (mul, sub, sum, div etc...)
     */
-    private static function calculateFees(float $subtotal, array $fees)
+    private static function calculateFees(float $subtotal, iterable $fees)
     {
-        $fees = [];
+        $totalFees = [];
         foreach ($fees as $fee) {
             if($fee->applies_to === 'order') {
-                $tax = round($subtotal * $fee->value, 2);
-                $fees[] = [
+                $tax = round($subtotal * $fee->value / 100, 2);
+                $totalFees[] = [
                     'fee_id' => $fee->id,
                     'value' => $tax
                 ];
             }
         }
-        return $fees;
+        return $totalFees;
     }
 
 
@@ -86,7 +86,7 @@ class Order extends Model
             // Step 3: Check if requested quantity exceeds available quantity
             $payloadQuantity = $itemsData[$item->id]['quantity'];
             if ($item->quantity - $payloadQuantity < 0) {
-                throw new \Exception("Insufficient quantity for item '{$item->name}' (ID: {$item->id}). Available: {$item->quantity}, Requested: {$requestedQuantity}");
+                throw new \Exception("Insufficient quantity for '{$item->name}'. Available: {$item->quantity}");
             }
         }
         
@@ -120,7 +120,7 @@ class Order extends Model
 
             // Calculate fees
             $fees = Company::find($companyId)->fees;
-            $calculatedFees = self::calculateFees($subtotal, $fees->toArray());
+            $calculatedFees = self::calculateFees($subtotal, $fees);
 
             // Calculate total
             $total = $subtotal;
@@ -158,6 +158,12 @@ class Order extends Model
         
         if (isset($data['status'])) {
             $this->status = $data['status'];
+        }
+
+        if (array_key_exists('receipt_id', $data)) {
+            $this->receipt_id = $data['receipt_id'];
+            $this->status = $data['receipt_id'] !== null ? 'completed' : 'open';
+            $this->completed_at = $data['receipt_id'] !== null ? now() : null;
         }
         
         $this->save();

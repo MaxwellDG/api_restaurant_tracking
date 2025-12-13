@@ -62,6 +62,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Standard CRUD resources
     Route::resource('items', ItemsController::class);
+    Route::patch('/items/{item}/quantity', [ItemsController::class, 'updateQuantity']);
     Route::resource('orders', OrdersController::class);
     Route::resource('categories', CategoriesController::class);
     Route::resource('fees', FeesController::class);

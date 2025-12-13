@@ -14,6 +14,7 @@ class OrderIndexResource extends JsonResource
             'subtotal' => $this->resource->subtotal,
             'total' => $this->resource->total,
             'status' => $this->resource->status,
+            'receipt_id' => $this->resource->receipt_id,
             'created_at' => $this->resource->created_at,
             'updated_at' => $this->resource->updated_at,
         ];

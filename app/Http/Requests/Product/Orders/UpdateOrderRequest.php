@@ -16,6 +16,7 @@ class UpdateOrderRequest extends FormRequest
             'total_amount' => 'numeric|min:0',
             'completed_at' => 'date',
             'paid_at' => 'date',
+            'receipt_id' => 'nullable|string|max:255',
         ];
     }
 
