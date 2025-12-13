@@ -38,7 +38,7 @@ class ItemsController extends Controller
 
     public function update(UpdateItemRequest $request, Item $item)
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->isAdmin() || Auth::user()->company_id !== $item->company_id) {
             return response()->json(['error' => 'Unauthorized. Only admin can update items.'], 403);
         }
         $item->update($request->validated());
@@ -47,15 +47,15 @@ class ItemsController extends Controller
 
     public function destroy(Item $item)
     {
-        if (!Auth::user()->isAdmin()) {
-            return response()->json(['error' => 'Unauthorized. Only admin can delete items.'], 403);
+        if (!Auth::user()->isAdmin() || Auth::user()->company_id !== $item->company_id) {
+            return response()->json(['error' => 'Unauthorized. Only admin from the same company can delete items.'], 403);
         }
         return $item->delete();
     }
 
     public function updateQuantity(UpdateItemQuantityRequest $request, Item $item)
     {
-        if (!Auth::user()->isAdmin()) {
+        if (!Auth::user()->isAdmin() || Auth::user()->company_id !== $item->company_id) {
             return response()->json(['error' => 'Unauthorized. Only admin can update item quantity.'], 403);
         }
         
