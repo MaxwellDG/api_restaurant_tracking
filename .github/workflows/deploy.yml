@@ -2,7 +2,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [master, main]
+    branches: [master]
 
 jobs:
   deploy:
@@ -40,6 +40,7 @@ jobs:
 
             # Restart services
             php artisan queue:restart
+            sudo systemctl restart laravel-worker
             sudo systemctl restart php8.2-fpm
             sudo systemctl reload nginx
 
