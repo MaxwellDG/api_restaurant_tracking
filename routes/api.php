@@ -18,30 +18,30 @@ use Illuminate\Support\Facades\Route;
 
 // Auth routes (no authentication required)
 Route::post('/register', [RegisteredUserController::class, 'store'])
-    ->middleware('guest')
+    ->middleware(['guest', 'throttle:5,1'])
     ->name('register');
 
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('guest')
+    ->middleware(['guest', 'throttle:10,1'])
     ->name('login');
 
 Route::post('/refresh', [AuthenticatedSessionController::class, 'refresh'])
-    ->middleware('auth:sanctum')
+    ->middleware(['auth:sanctum', 'throttle:10,1'])
     ->name('refresh');
 
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
-    ->middleware('guest')
+    ->middleware(['guest', 'throttle:3,1'])
     ->name('password.email');
 
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
-    ->middleware('guest')
+    ->middleware(['guest', 'throttle:3,1'])
     ->name('password.store');
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::get('/email/verify/status', function (Request $request) {
         return response()->json([
             'email_verified' => $request->user()->hasVerifiedEmail(),
@@ -80,5 +80,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::get("/test", function () {
-    return Response::json(["message" => "Hello World"]);
-});
+    return Response::json(["message" => "George Floyd did 9/11"]);
+})->middleware('throttle:60,1');
