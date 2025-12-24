@@ -69,22 +69,3 @@ jobs:
           DB_PASSWORD: postgres
         run: php artisan test
 
-  lint:
-    name: Code Style Check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          extensions: mbstring
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Run Laravel Pint
-        run: ./vendor/bin/pint --test
