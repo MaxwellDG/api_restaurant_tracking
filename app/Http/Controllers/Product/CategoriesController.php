@@ -8,8 +8,6 @@ use App\Http\Requests\Product\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class CategoriesController extends Controller
@@ -17,7 +15,7 @@ class CategoriesController extends Controller
     use HasCompanyScope;
     public function index()
     {
-        return Category::all();
+        return response()->json(CategoryResource::collection(Category::all()));
     }
 
     public function show(Category $category)
@@ -44,6 +42,7 @@ class CategoriesController extends Controller
         $category->update($request->all());
         return response()->json(new CategoryResource($category));
     }
+
     public function destroy(Category $category)
     {
         if (!Auth::user()->isAdmin()) {
