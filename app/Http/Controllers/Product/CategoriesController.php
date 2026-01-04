@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\Category\CreateCategoryRequest;
-use App\Http\Requests\Product\UpdateCategoryRequest;
+use App\Http\Requests\Product\Category\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Category;

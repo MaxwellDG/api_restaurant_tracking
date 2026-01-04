@@ -71,9 +71,18 @@ class OrdersController extends Controller
 
     public function destroy(Order $order)
     {
-        if (!Auth::user()->isAdmin() || Auth::user()->company_id !== $order->company_id) {
-            return response()->json(['error' => 'Unauthorized. Only admin from the same company can delete orders.'], 403);
+        $user = Auth::user();
+        
+        // Check if user is from the same company
+        if ($user->company_id !== $order->company_id) {
+            return response()->json(['error' => 'Unauthorized. You can only delete orders from your company.'], 403);
         }
-        return $order->delete();
+        
+        // Allow if user is admin OR if user created the order
+        if ($user->isAdmin() || $order->user_id === $user->id) {
+            return $order->delete();
+        }
+        
+        return response()->json(['error' => 'Unauthorized. You can only delete your own orders.'], 403);
     }
 }
