@@ -10,6 +10,7 @@ use App\Http\Controllers\Company\CompanyController;
 use App\Http\Controllers\Data\DataController;
 use App\Http\Controllers\Product\ItemsController;
 use App\Http\Controllers\Product\CategoriesController;
+use App\Http\Controllers\Product\LabelsController;
 use App\Http\Controllers\Product\FeesController;
 use App\Http\Controllers\Product\OrdersController;
 use Illuminate\Http\Request;
@@ -64,7 +65,10 @@ Route::middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
     Route::resource('items', ItemsController::class);
     Route::patch('/items/{item}/quantity', [ItemsController::class, 'updateQuantity']);
     Route::resource('orders', OrdersController::class);
+    Route::post('/orders/{order}/items', [OrdersController::class, 'addItems']);
+    Route::delete('/orders/{order}/items', [OrdersController::class, 'removeItems']);
     Route::resource('categories', CategoriesController::class);
+    Route::resource('labels', LabelsController::class);
     Route::resource('fees', FeesController::class);
     Route::resource('companies', CompanyController::class)->except(['index']);
     

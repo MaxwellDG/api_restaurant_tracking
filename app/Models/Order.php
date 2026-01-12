@@ -12,11 +12,25 @@ class Order extends BaseModel
     protected $primaryKey = 'uuid';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status', 'receipt_id'];
+    protected $fillable = ['user_id', 'total', 'completed_at', 'company_id', 'subtotal', 'status', 'receipt_id', 'label'];
     
     protected $casts = [
         'completed_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        // Restore inventory when an order is deleted
+        static::deleting(function ($order) {
+            // Load items with their pivot data
+            $order->load('items');
+            
+            // Restore inventory for each item in the order
+            foreach ($order->items as $item) {
+                $item->increment('quantity', $item->pivot->quantity);
+            }
+        });
+    }
 
     public function user()
     {
@@ -31,7 +45,7 @@ class Order extends BaseModel
     public function items()
     {
         return $this->belongsToMany(Item::class, 'orders_items', 'order_id', 'item_id')
-                    ->withPivot('quantity', 'unit_price')
+                    ->withPivot('id', 'quantity', 'unit_price')
                     ->withTimestamps();
     }
 
@@ -64,12 +78,13 @@ class Order extends BaseModel
 
 
     /**
-     * Create a new order with items
+     * Validate and prepare order items data
+     * 
+     * @return array ['items' => Collection, 'itemsData' => Collection]
      */
-    public static function createWithItems(int $user_id, array $data)
+    private static function validateAndPrepareItems(int $companyId, array $itemsData)
     {
-        $companyId = $data['company_id'];
-        $itemsData = collect($data['items'])->keyBy('id');
+        $itemsData = collect($itemsData)->keyBy('id');
         $itemIds = $itemsData->pluck("id")->toArray();
         $items = Item::whereIn('id', $itemIds)->get();
 
@@ -92,19 +107,62 @@ class Order extends BaseModel
                 throw new \Exception("Insufficient quantity for '{$item->name}'. Available: {$item->quantity}");
             }
         }
+
+        return ['items' => $items, 'itemsData' => $itemsData];
+    }
+
+    /**
+     * Calculate subtotal from items
+     */
+    private static function calculateSubtotal($items, $itemsData)
+    {
+        $subtotal = 0;
+        foreach ($items as $item) {
+            $unitPrice = $item->price;
+            $payloadQuantity = $itemsData[$item->id]['quantity'];
+            $subtotal += $unitPrice * $payloadQuantity;
+        }
+        return $subtotal;
+    }
+
+    /**
+     * Calculate total from subtotal and fees
+     */
+    private static function calculateTotal(float $subtotal, array $calculatedFees)
+    {
+        $total = $subtotal;
+        foreach ($calculatedFees as $fee) {
+            $total += $fee['value'];
+        }
+        return $total;
+    }
+
+    /**
+     * Create a new order with items
+     */
+    public static function createWithItems(int $user_id, array $data)
+    {
+        $companyId = $data['company_id'];
+        $label = $data['label'] ?? null;
         
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($user_id, $companyId, $items, $itemsData) {
+        // Validate and prepare items
+        $prepared = self::validateAndPrepareItems($companyId, $data['items']);
+        $items = $prepared['items'];
+        $itemsData = $prepared['itemsData'];
+        
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($user_id, $companyId, $label, $items, $itemsData) {
             $order = new static();
             $order->uuid = (string) \Illuminate\Support\Str::uuid();
             $order->user_id = $user_id;
             $order->company_id = $companyId;
+            $order->label = $label;
             $order->status = 'open';
             $order->total = 0;
             $order->subtotal = 0;
             
             $order->save();
             
-            // Calculate subtotal
+            // Calculate subtotal and attach items
             $subtotal = 0;
             foreach ($items as $item) {
                 $unitPrice = $item->price;
@@ -126,10 +184,7 @@ class Order extends BaseModel
             $calculatedFees = self::calculateFees($subtotal, $fees);
 
             // Calculate total
-            $total = $subtotal;
-            foreach ($calculatedFees as $fee) {
-                $total += $fee['value'];
-            }
+            $total = self::calculateTotal($subtotal, $calculatedFees);
             $order->total = $total;
             $order->save();
 
@@ -172,5 +227,138 @@ class Order extends BaseModel
         $this->save();
 
         return $this->load('user', 'items');
+    }
+
+    /**
+     * Add items to an existing order
+     * 
+     * @param array $itemsToAdd Array of ['id' => item_id, 'quantity' => qty]
+     */
+    public function addItems(array $itemsToAdd)
+    {
+        // Check if order is open
+        if ($this->status !== 'open') {
+            throw new \Exception("Cannot add items to an order with status '{$this->status}'. Order must be open.");
+        }
+        
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($itemsToAdd) {
+            // Validate and prepare new items
+            $prepared = self::validateAndPrepareItems($this->company_id, $itemsToAdd);
+            $newItems = $prepared['items'];
+            $newItemsData = $prepared['itemsData'];
+
+            // Add or update items
+            foreach ($newItems as $item) {
+                $unitPrice = $item->price;
+                $payloadQuantity = $newItemsData[$item->id]['quantity'];
+                
+                // Check if item already exists in order
+                $existingItem = $this->items()->where('item_id', $item->id)->first();
+                
+                if ($existingItem) {
+                    // Update existing item quantity
+                    $newQuantity = $existingItem->pivot->quantity + $payloadQuantity;
+                    $this->items()->updateExistingPivot($item->id, [
+                        'quantity' => $newQuantity,
+                        'unit_price' => $unitPrice
+                    ]);
+                } else {
+                    // Attach new item
+                    $this->items()->attach($item->id, [
+                        'quantity' => $payloadQuantity,
+                        'unit_price' => $unitPrice
+                    ]);
+                }
+                
+                // Decrement inventory
+                $item->decrement('quantity', $payloadQuantity);
+            }
+
+            // Recalculate subtotal from all items
+            $this->refresh();
+            $subtotal = 0;
+            foreach ($this->items as $item) {
+                $subtotal += $item->pivot->unit_price * $item->pivot->quantity;
+            }
+            $this->subtotal = $subtotal;
+
+            // Recalculate fees
+            $fees = Company::find($this->company_id)->fees;
+            $calculatedFees = self::calculateFees($subtotal, $fees);
+
+            // Update fees
+            $this->fees()->detach();
+            foreach ($calculatedFees as $fee) {
+                $this->fees()->attach($fee['fee_id'], ['value' => $fee['value']]);
+            }
+
+            // Recalculate total
+            $this->total = self::calculateTotal($subtotal, $calculatedFees);
+            $this->save();
+
+            return $this->load('user', 'items', 'fees');
+        });
+    }
+
+    /**
+     * Remove items from an existing order using order_item_id
+     * 
+     * @param array $orderItemIds Array of order_item (pivot) IDs to remove
+     */
+    public function removeItems(array $orderItemIds)
+    {
+        // Check if order is open
+        if ($this->status !== 'open') {
+            throw new \Exception("Cannot remove items from an order with status '{$this->status}'. Order must be open.");
+        }
+        
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($orderItemIds) {
+            foreach ($orderItemIds as $orderItemId) {
+                // Get the order_item pivot record
+                $orderItem = \Illuminate\Support\Facades\DB::table('orders_items')
+                    ->where('id', $orderItemId)
+                    ->where('order_id', $this->uuid)
+                    ->first();
+                
+                if (!$orderItem) {
+                    throw new \Exception("Order item with ID {$orderItemId} not found in this order.");
+                }
+                
+                // Get the item and restore inventory
+                $item = Item::find($orderItem->item_id);
+                if ($item) {
+                    $item->increment('quantity', $orderItem->quantity);
+                }
+                
+                // Delete the order_item pivot record
+                \Illuminate\Support\Facades\DB::table('orders_items')
+                    ->where('id', $orderItemId)
+                    ->delete();
+            }
+
+            // Recalculate subtotal from remaining items
+            $this->refresh();
+            $subtotal = 0;
+            foreach ($this->items as $item) {
+                $subtotal += $item->pivot->unit_price * $item->pivot->quantity;
+            }
+            $this->subtotal = $subtotal;
+
+            // Recalculate fees
+            $fees = Company::find($this->company_id)->fees;
+            $calculatedFees = self::calculateFees($subtotal, $fees);
+
+            // Update fees
+            $this->fees()->detach();
+            foreach ($calculatedFees as $fee) {
+                $this->fees()->attach($fee['fee_id'], ['value' => $fee['value']]);
+            }
+
+            // Recalculate total
+            $this->total = self::calculateTotal($subtotal, $calculatedFees);
+            $this->save();
+
+            return $this->load('user', 'items', 'fees');
+        });
     }
 }

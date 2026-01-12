@@ -11,6 +11,7 @@ use App\Http\Resources\OrderResource;
 use App\Http\Traits\HasCompanyScope;
 use App\Models\Order;
 use App\Repositories\OrdersRepository;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OrdersController extends Controller
@@ -84,5 +85,60 @@ class OrdersController extends Controller
         }
         
         return response()->json(['error' => 'Unauthorized. You can only delete your own orders.'], 403);
+    }
+
+    public function addItems(Request $request, Order $order)
+    {
+        $user = Auth::user();
+        
+        // Check if user is from the same company
+        if ($user->company_id !== $order->company_id) {
+            return response()->json(['error' => 'Unauthorized. You can only modify orders from your company.'], 403);
+        }
+        
+        // Only allow if user is admin OR if user created the order
+        if (!$user->isAdmin() && $order->user_id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized. You can only modify your own orders.'], 403);
+        }
+        
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'required|integer|exists:items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+        
+        try {
+            $updatedOrder = $order->addItems($request->input('items'));
+            return response()->json(new OrderResource($updatedOrder));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function removeItems(Request $request, Order $order)
+    {
+        $user = Auth::user();
+        
+        // Check if user is from the same company
+        if ($user->company_id !== $order->company_id) {
+            return response()->json(['error' => 'Unauthorized. You can only modify orders from your company.'], 403);
+        }
+        
+        // Only allow if user is admin OR if user created the order
+        if (!$user->isAdmin() && $order->user_id !== $user->id) {
+            return response()->json(['error' => 'Unauthorized. You can only modify your own orders.'], 403);
+        }
+        
+        $request->validate([
+            'order_item_ids' => 'required|array|min:1',
+            'order_item_ids.*' => 'required|integer',
+        ]);
+        
+        try {
+            $updatedOrder = $order->removeItems($request->input('order_item_ids'));
+            return response()->json(new OrderResource($updatedOrder));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
 }

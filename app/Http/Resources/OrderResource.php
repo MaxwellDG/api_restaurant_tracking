@@ -29,6 +29,7 @@ class OrderResource extends JsonResource
             $unitPrice = $item->pivot->unit_price;
 
             return [
+                'order_item_id' => $item->pivot->id,
                 'id' => $item->id,
                 'name' => $item->name,
                 'description' => $item->description,

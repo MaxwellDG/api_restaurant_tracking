@@ -12,6 +12,7 @@ class CreateOrderRequest extends CompanyScopedRequest
             'items' => 'required|array',
             'items.*.id' => 'required|exists:items,id',
             'items.*.quantity' => 'required|integer|min:1',
+            'label' => 'required|string|max:255',
         ], ['company_id' => 'prohibited']);
     }
 
