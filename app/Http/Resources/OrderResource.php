@@ -30,14 +30,10 @@ class OrderResource extends JsonResource
 
             return [
                 'order_item_id' => $item->pivot->id,
-                'id' => $item->id,
-                'name' => $item->name,
-                'description' => $item->description,
-                'price' => $unitPrice * $quantity,
-                'category' => $item->category_id,
-                'image' => $item->image,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
+                'price' => $unitPrice * $quantity,
+                'item' => new ItemResource($item),
             ];
         })->toArray();
     }

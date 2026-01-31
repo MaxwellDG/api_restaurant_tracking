@@ -9,16 +9,16 @@ class ItemResource extends JsonResource
     public function toArray($request)
     {
         return [
-            'id' => $this->resource->id,
-            'name' => $this->resource->name,
-            'description' => $this->resource->description,
-            'price' => $this->resource->price,
-            'category' => $this->resource->category_id,
-            'quantity' => $this->resource->quantity,
-            'type_of_unit' => $this->resource->type_of_unit,
-            'image' => $this->resource->image,
-            'created_at' => $this->resource->created_at,
-            'updated_at' => $this->resource->updated_at,
+            'id' => $this->id,
+            'name' => $this->name,
+            'description' => $this->description,
+            'price' => $this->price,
+            'category' => $this->category_id,
+            'quantity' => $this->quantity,
+            'type_of_unit' => $this->type_of_unit,
+            'image' => $this->image,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
     }
 }

@@ -23,7 +23,7 @@ class CreateItemRequest extends CompanyScopedRequest
                 Rule::unique('items', 'name')->where('company_id', $companyId)
             ],
             'description' => 'nullable|string|max:1000',
-            'price' => 'sometimes|numeric|min:0|max:999999.99',
+            'price' => 'nullable|numeric|min:0|max:999999.99',
             'quantity' => 'sometimes|integer|min:0',
             'type_of_unit' => 'sometimes|string|max:255',
             'image' => 'sometimes|nullable|url',
